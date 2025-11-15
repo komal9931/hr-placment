@@ -1,101 +1,123 @@
+// // // const { Sequelize } = require("sequelize");
+// // // require("dotenv").config();
+
+// // // const sequelize = new Sequelize(
+// // //   process.env.DB_NAME,
+// // //   process.env.DB_USER,
+// // //   process.env.DB_PASSWORD,
+// // //   {
+// // //     host: process.env.DB_HOST,
+// // //     port: process.env.DB_PORT,
+// // //     dialect: "mysql",
+// // //     dialectModule: require("mysql2"),
+// // //     logging: false,
+// // //   }
+// // // );
+
+// // // async function connection(params) {
+// // //   try {
+// // //     await sequelize.authenticate();
+// // //     console.log("Connection has been established successfully.");
+// // //   } catch (error) {
+// // //     console.log(error);
+// // //   }
+// // // }
+
+// // // connection();
+
+// // // module.exports = connection;
+
+// // // src/config/dbconnect.js
 // // const { Sequelize } = require("sequelize");
 // // require("dotenv").config();
+// // console.log(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD);
 
+// // // Create Sequelize instance
 // // const sequelize = new Sequelize(
 // //   process.env.DB_NAME,
 // //   process.env.DB_USER,
 // //   process.env.DB_PASSWORD,
 // //   {
-// //     host: process.env.DB_HOST,
-// //     port: process.env.DB_PORT,
+// //     // host: process.env.DB_HOST,
+// //     port: process.env.DB_PORT || 3306,
 // //     dialect: "mysql",
 // //     dialectModule: require("mysql2"),
 // //     logging: false,
 // //   }
 // // );
 
-// // async function connection(params) {
+// // // Test the connection (optional, will log success/failure)
+// // sequelize
+// //   .authenticate()
+// //   .then(() => console.log("✅ Connection has been established successfully."))
+// //   .catch((err) => console.error("❌ Unable to connect to the database:", err));
+
+// // // Export the Sequelize instance directly
+// // module.exports = sequelize;
+
+// // const mongoose = require("mongoose");
+// // require("dotenv").config();
+
+// // console.log("Mongo URI:", process.env.MONGO_URI);
+
+// // // Mongoose connection function
+// // async function connectDB() {
 // //   try {
-// //     await sequelize.authenticate();
-// //     console.log("Connection has been established successfully.");
+// //     await mongoose.connect(process.env.MONGO_URI, {
+// //       useNewUrlParser: true,
+// //       useUnifiedTopology: true,
+// //     });
+
+// //     console.log("✅ MongoDB connection established successfully");
 // //   } catch (error) {
-// //     console.log(error);
+// //     console.error("❌ MongoDB connection failed:", error);
+// //     process.exit(1); // Stop the server if DB fails
 // //   }
 // // }
 
-// // connection();
+// // connectDB();
 
-// // module.exports = connection;
+// // module.exports = mongoose;
+// import mongoose from "mongoose";
 
-// // src/config/dbconnect.js
-// const { Sequelize } = require("sequelize");
-// require("dotenv").config();
-// console.log(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD);
-
-// // Create Sequelize instance
-// const sequelize = new Sequelize(
-//   process.env.DB_NAME,
-//   process.env.DB_USER,
-//   process.env.DB_PASSWORD,
-//   {
-//     // host: process.env.DB_HOST,
-//     port: process.env.DB_PORT || 3306,
-//     dialect: "mysql",
-//     dialectModule: require("mysql2"),
-//     logging: false,
+// export async function connectDB() {
+//   if (mongoose.connection.readyState === 1) {
+//     return; // already connected
 //   }
-// );
 
-// // Test the connection (optional, will log success/failure)
-// sequelize
-//   .authenticate()
-//   .then(() => console.log("✅ Connection has been established successfully."))
-//   .catch((err) => console.error("❌ Unable to connect to the database:", err));
-
-// // Export the Sequelize instance directly
-// module.exports = sequelize;
-
-// const mongoose = require("mongoose");
-// require("dotenv").config();
-
-// console.log("Mongo URI:", process.env.MONGO_URI);
-
-// // Mongoose connection function
-// async function connectDB() {
 //   try {
-//     await mongoose.connect(process.env.MONGO_URI, {
-//       useNewUrlParser: true,
-//       useUnifiedTopology: true,
+//     const uri = process.env.MONGODB_URI;
+//     console.log("Mongo URI:", uri);
+
+//     await mongoose.connect(uri, {
+//       dbName: "placement",
 //     });
 
-//     console.log("✅ MongoDB connection established successfully");
-//   } catch (error) {
-//     console.error("❌ MongoDB connection failed:", error);
-//     process.exit(1); // Stop the server if DB fails
+//     console.log("MongoDB Connected Successfully");
+//   } catch (err) {
+//     console.error("MongoDB Connection Error:", err);
+//     throw new Error("MongoDB Connection Failed");
 //   }
 // }
-
-// connectDB();
-
-// module.exports = mongoose;
 import mongoose from "mongoose";
 
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  throw new Error("Missing MONGODB_URI");
+}
+
+let isConnected = false;
+
 export async function connectDB() {
-  if (mongoose.connection.readyState === 1) {
-    return; // already connected
-  }
+  if (isConnected) return;
 
   try {
-    const uri = process.env.MONGODB_URI;
-    console.log("Mongo URI:", uri);
-
-    await mongoose.connect(uri, {
-      dbName: "placement",
-    });
-
-    console.log("MongoDB Connected Successfully");
-  } catch (err) {
-    console.error("MongoDB Connection Error:", err);
+    await mongoose.connect(MONGODB_URI);
+    isConnected = true;
+    console.log("MongoDB Connected");
+  } catch (error) {
+    console.error("MongoDB Connection Failed:", error);
     throw new Error("MongoDB Connection Failed");
   }
 }
