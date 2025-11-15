@@ -1,4 +1,5 @@
-const PlacementData = require("../../../models/placementmodel");
+import PlacementData from "../../../../models/placementmodel";
+import { connectDB } from "../../../../config/dbconnect";
 const { NextResponse } = require("next/server");
 import nodemailer from "nodemailer";
 // export async function GET(req) {
@@ -12,21 +13,12 @@ import nodemailer from "nodemailer";
 //     });
 //   }
 // }
-export async function GET(req) {
+export async function GET() {
   try {
-    // Fetch all placement records (or you can filter by query if needed)
-    const data = await PlacementData.findAll({
-      attributes: ["email"], // Only fetch email column
-    });
+    await connectDB(); // connect MongoDB
 
-    if (!data || data.length === 0) {
-      return new Response(JSON.stringify({ message: "No emails found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const data = await PlacementData.find({}, "email");
 
-    // Return emails as JSON
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -35,10 +27,36 @@ export async function GET(req) {
     console.error("Error fetching placements:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
     });
   }
 }
+// export async function GET(req) {
+//   try {
+//     // Fetch all placement records (or you can filter by query if needed)
+//     const data = await PlacementData.find({
+//       attributes: ["email"], // Only fetch email column
+//     });
+
+//     if (!data || data.length === 0) {
+//       return new Response(JSON.stringify({ message: "No emails found" }), {
+//         status: 404,
+//         headers: { "Content-Type": "application/json" },
+//       });
+//     }
+
+//     // Return emails as JSON
+//     return new Response(JSON.stringify(data), {
+//       status: 200,
+//       headers: { "Content-Type": "application/json" },
+//     });
+//   } catch (err) {
+//     console.error("Error fetching placements:", err);
+//     return new Response(JSON.stringify({ error: err.message }), {
+//       status: 500,
+//       headers: { "Content-Type": "application/json" },
+//     });
+//   }
+// }
 
 // export async function POST(req) {
 //   try {
@@ -182,14 +200,90 @@ export async function GET(req) {
 //     });
 //   }
 // }
+// export async function POST(req) {
+//   try {
+//     const data = await req.json();
+
+//     // 1. Check if email already exists
+//     const existing = await PlacementData.findOne({
+//       where: { email: data.email },
+//     });
+
+//     if (existing) {
+//       return new Response(
+//         JSON.stringify({
+//           message: "This email has already submitted the form!",
+//         }),
+//         { status: 409 }
+//       );
+//     }
+
+//     // 2. Save record in DB
+//     await PlacementData.create(data);
+
+//     // -----------------------------
+//     // 3. SEND EMAIL with all form data
+//     // -----------------------------
+//     const transporter = nodemailer.createTransport({
+//       service: "gmail",
+//       auth: {
+//         user: "saurvphawade09@gmail.com",
+//         pass: "hskp yepi dppr pika",
+//       },
+//     });
+
+//     const mailBody = `
+//       <h2>Placement Readiness Form Submission</h2>
+//       <p><strong>Name:</strong> ${data.fullName}</p>
+//       <p><strong>Email:</strong> ${data.email}</p>
+//       <p><strong>Contact:</strong> ${data.contact}</p>
+//       <p><strong>Course:</strong> ${data.course}</p>
+//       <p><strong>Faculty:</strong> ${data.faculty}</p>
+//       <p><strong>Counselor:</strong> ${data.counselor}</p>
+//       <p><strong>English Videos:</strong> ${data.englishVideos}</p>
+//       <p><strong>Portfolio Projects:</strong> ${data.portfolioProjects}</p>
+//       <p><strong>Portfolio Link:</strong> ${data.portfolioLink}</p>
+//       <p><strong>Test Marks:</strong> ${data.testMarks}</p>
+//       <p><strong>Normal CV:</strong> ${data.normalCV}</p>
+//       <p><strong>Digital CV:</strong> ${data.digitalCV}</p>
+//       <p><strong>LinkedIn Profile:</strong> ${data.linkedinProfile}</p>
+//       <hr/>
+//       <p>Submitted on: ${new Date().toLocaleString()}</p>
+//     `;
+
+//     await transporter.sendMail({
+//       from: "saurvphawade09@gmail.com",
+//       to: data.email, // send to student
+//       // OR to: "admin@yourdomain.com" // if you want admin to receive
+//       subject: "Your Placement Readiness Form Submission",
+//       html: mailBody,
+//     });
+
+//     // -----------------------------
+
+//     return new Response(
+//       JSON.stringify({ message: "Form submitted successfully!" }),
+//       { status: 201 }
+//     );
+//   } catch (err) {
+//     console.log("Error creating placement:", err);
+//     return new Response(JSON.stringify({ error: err.message }), {
+//       status: 500,
+//     });
+//   }
+// }
+
+// import PlacementData from "@/models/PlacementData";
+// import nodemailer from "nodemailer";
+
 export async function POST(req) {
   try {
+    await connectDB();
+
     const data = await req.json();
 
-    // 1. Check if email already exists
-    const existing = await PlacementData.findOne({
-      where: { email: data.email },
-    });
+    // 1. Check if this email already exists
+    const existing = await PlacementData.findOne({ email: data.email });
 
     if (existing) {
       return new Response(
@@ -200,12 +294,10 @@ export async function POST(req) {
       );
     }
 
-    // 2. Save record in DB
+    // 2. Save data
     await PlacementData.create(data);
 
-    // -----------------------------
-    // 3. SEND EMAIL with all form data
-    // -----------------------------
+    // 3. Email sending
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -235,13 +327,10 @@ export async function POST(req) {
 
     await transporter.sendMail({
       from: "saurvphawade09@gmail.com",
-      to: data.email, // send to student
-      // OR to: "admin@yourdomain.com" // if you want admin to receive
+      to: data.email,
       subject: "Your Placement Readiness Form Submission",
       html: mailBody,
     });
-
-    // -----------------------------
 
     return new Response(
       JSON.stringify({ message: "Form submitted successfully!" }),

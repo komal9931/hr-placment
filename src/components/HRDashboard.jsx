@@ -403,7 +403,7 @@ export default function PlacementReadinessForm() {
     console.log("Submitting payload:", finalFormData);
 
     try {
-      const res = await fetch("/api/hr", {
+      const res = await fetch("http://localhost:3000/api/hr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(finalFormData),
