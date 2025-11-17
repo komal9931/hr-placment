@@ -1,5 +1,5 @@
-import PlacementData from "../../../../models/placementmodel";
-import { connectDB } from "../../../../config/dbconnect";
+import PlacementData from "../../../models/placementmodel";
+import { connectDB } from "../../../lib/dbconnect";
 const { NextResponse } = require("next/server");
 import nodemailer from "nodemailer";
 // export async function GET(req) {
