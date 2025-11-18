@@ -17,7 +17,7 @@ export async function GET() {
   try {
     await connectDB(); // connect MongoDB
 
-    const data = await PlacementData.find({}, "email");
+    const data = await PlacementData.find({}); // ⬅ get ALL fields
 
     return new Response(JSON.stringify(data), {
       status: 200,
@@ -30,6 +30,7 @@ export async function GET() {
     });
   }
 }
+
 // export async function GET(req) {
 //   try {
 //     // Fetch all placement records (or you can filter by query if needed)

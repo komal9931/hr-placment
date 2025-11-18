@@ -1,6 +1,16 @@
 "use client";
 
-export default function Step4({ formData, handleChange }) {
+import { useEffect } from "react";
+
+export default function Step4({ formData, handleChange, setIsStepValid }) {
+  useEffect(() => {
+    if (formData.agreeTerms) {
+      setIsStepValid(true);
+    } else {
+      setIsStepValid(false);
+    }
+  }, [formData.agreeTerms]);
+
   return (
     <>
       {/* Header */}
@@ -14,6 +24,12 @@ export default function Step4({ formData, handleChange }) {
         className="border-0  rounded-b-xl p-6 mb-6 max-h-[450px] overflow-y-auto 
         text-sm leading-relaxed whitespace-pre-line  transition-shadow duration-300 scrollbar-hide"
       >
+        {/* -------- ADDED SHORT WARNING MESSAGE -------- */}
+        <p className="text-red-600 font-semibold mb-4">
+          ⚠️ Please read all the guidelines carefully. You must agree to
+          continue.
+        </p>
+
         <div className="text-gray-700">
           {`At Felix ITs, we are committed to helping our students secure job opportunities after successfully completing their training. To ensure a smooth and effective placement process, students must adhere to the following Terms & Conditions:
 
@@ -73,6 +89,13 @@ Have you read and agreed to all Terms & Conditions and Instructions? (Yes/No - M
             Yes, I Agree
           </span>
         </label>
+
+        {/* -------- INLINE ERROR IF NOT SELECTED -------- */}
+        {!formData.agreeTerms && (
+          <p className="text-red-600 text-sm mt-2">
+            ⚠️ You must read and accept the guidelines before continuing.
+          </p>
+        )}
       </div>
     </>
   );

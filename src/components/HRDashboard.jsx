@@ -336,15 +336,21 @@ import Step2 from "./Step2";
 import Step3 from "./Step3";
 import Step4 from "./Step4";
 import Step5 from "./Step5";
+import Step6 from "./Step6"; // ✅ Added
 import { useRouter } from "next/navigation";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function PlacementReadinessForm() {
   const [step, setStep] = useState(1);
+  const [isStepValid, setIsStepValid] = useState(false);
+
   const [loginEmail, setLoginEmail] = useState("");
+  const [errors, setErrors] = useState({});
   const router = useRouter();
 
   const initialState = {
-    email: "", // FINAL EMAIL WILL BE FROM localStorage
+    email: "",
     fullName: "",
     activeEmail: "",
     contact: "",
@@ -367,7 +373,6 @@ export default function PlacementReadinessForm() {
   useEffect(() => {
     const storedEmail = localStorage.getItem("loginEmail");
 
-    // 👉 Redirect if user is not logged in
     if (!storedEmail) {
       router.push("/login");
       return;
@@ -385,11 +390,55 @@ export default function PlacementReadinessForm() {
     });
   };
 
-  const clearForm = () => setFormData(initialState);
+  // VALIDATION
+  const validateStep1 = () => {
+    let newErrors = {};
 
-  // -----------------------
-  // FORM SUBMIT UPDATED
-  // -----------------------
+    if (!formData.fullName.trim()) newErrors.fullName = "Full Name is required";
+
+    if (!formData.activeEmail)
+      newErrors.activeEmail = "Active Email is required";
+    else if (!/\S+@\S+\.\S+/.test(formData.activeEmail))
+      newErrors.activeEmail = "Enter a valid email address";
+
+    if (!formData.contact) newErrors.contact = "Contact number is required";
+    else if (!/^[0-9]{10}$/.test(formData.contact))
+      newErrors.contact = "Enter a valid 10-digit number";
+
+    if (!formData.course) newErrors.course = "Course selection is required";
+
+    if (!formData.counselor.trim())
+      newErrors.counselor = "Counselor name is required";
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Please correct the highlighted fields");
+      return false;
+    }
+
+    return true;
+  };
+
+  const clearForm = () => {
+    setFormData(initialState);
+    setErrors({});
+  };
+
+  const nextHandler = () => {
+    if (step === 1) {
+      if (!validateStep1()) return;
+    }
+
+    if (step !== 1 && !isStepValid) {
+      alert("Please complete all fields correctly.");
+      return;
+    }
+
+    setErrors({});
+    setStep(step + 1);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -397,168 +446,170 @@ export default function PlacementReadinessForm() {
 
     const finalFormData = {
       ...formData,
-      email: loginEmail, // ensure backend receives email column
+      email: loginEmail,
     };
 
-    console.log("Submitting payload:", finalFormData);
-
     try {
-      const res = await fetch("/api/hr", {
+      const res = await fetch("http://localhost:3000/api/hr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(finalFormData),
       });
 
-      const status = res.status;
-      let text;
-      try {
-        // try parse JSON
-        const json = await res.json();
-        console.log("Server JSON response:", json);
-        text = JSON.stringify(json);
-      } catch (jsonErr) {
-        // not JSON — capture raw text
-        const raw = await res.text();
-        console.warn("Server returned non-JSON response:", raw);
-        text = raw;
-      }
+      if (res.ok) {
+        toast.success("Form submitted successfully!");
 
-      console.log("HTTP status:", status);
+        setTimeout(() => {
+          setStep(6); // 👉 Move to Step 6 after success
+        }, 1500);
 
-      if (status >= 200 && status < 300) {
-        alert(JSON.parse(text)?.message || "Form submitted successfully!");
-        console.log("Submitted Form Data:", finalFormData);
-        // 👉 Reset form and redirect to Step 1
-        setStep(1);
         return;
       }
 
-      // handle email already exists
-      if (status === 409) {
-        alert("This email has already submitted the form!");
+      if (res.status === 409) {
+        toast.error("This email has already submitted the form!");
         return;
       }
 
-      // Non-2xx: show server text or JSON message
-      let serverMsg = "Something went wrong!";
-      try {
-        serverMsg = JSON.parse(text)?.message || text;
-      } catch (err) {
-        serverMsg = text || serverMsg;
-      }
-      alert(`Error ${status}: ${serverMsg}`);
-      console.error("Submit error details:", { status, response: text });
+      toast.error("Something went wrong while submitting.");
     } catch (err) {
-      console.error("Network / fetch error:", err);
-      alert(`Network error: ${err.message}`);
+      toast.error(`Network error: ${err.message}`);
     }
   };
 
   return (
     <div className="min-h-screen flex justify-center p-6 bg-gray-50">
-      <div className="w-full max-w-[500px] bg-white p-8 rounded border shadow">
-        {/* HEADER */}
-        <div className="text-center mb-6">
-          <Image
-            src="/images/logo.svg"
-            alt="Felix-ITs"
-            height={80}
-            width={100}
-            className="mx-auto h-20"
-          />
-          <h1 className="text-2xl font-bold mt-4">
-            Felix ITs - Placement Readiness Form
-          </h1>
-          <p className="text-gray-600 mt-2 text-sm">
-            Please fill out this form accurately. Incomplete or incorrect
-            submissions may delay your placement process.
-          </p>
-        </div>
+      <ToastContainer position="top-right" autoClose={2500} />
 
-        {/* ACCOUNT BAR */}
-        <div className="flex justify-start items-center text-sm text-gray-700 mb-4">
-          <span className="mr-2">{loginEmail || "Loading..."}</span>
-          <button
-            className="text-blue-600 hover:underline"
-            onClick={() => router.push("/login")}
-          >
-            Switch account
-          </button>
-        </div>
+      <div className="w-full max-w-[500px] bg-white p-8 rounded border-0 shadow">
+        {/* Header hidden in Step 6 */}
+        {step !== 6 && (
+          <div className="text-center mb-6">
+            <Image
+              src="/images/logo.svg"
+              alt="Felix-ITs"
+              height={80}
+              width={100}
+              className="mx-auto h-20"
+            />
+            <h1 className="text-2xl font-bold mt-4">
+              Felix ITs - Placement Readiness Form
+            </h1>
+            <p className="text-gray-600 mt-2 text-sm">
+              Please fill out this form accurately.
+            </p>
+          </div>
+        )}
 
-        <p className="text-sm text-gray-500 mb-6">
-          * Indicates required question
-        </p>
+        {/* Email & required note hidden in Step 6 */}
+        {step !== 6 && (
+          <>
+            <div className="flex justify-start items-center text-sm text-gray-700 mb-4">
+              <span className="mr-2">{loginEmail || "Loading..."}</span>
+              <button
+                className="text-blue-600 hover:underline"
+                onClick={() => router.push("/login")}
+              >
+                Switch account
+              </button>
+            </div>
 
-        {/* FORM */}
+            <p className="text-sm text-gray-500 mb-6">
+              * Indicates required question
+            </p>
+          </>
+        )}
+
+        {/* FORM RENDERING */}
         <form onSubmit={handleSubmit}>
           {step === 1 && (
             <Step1
               formData={formData}
               handleChange={handleChange}
               userEmail={loginEmail}
+              errors={errors}
             />
           )}
-          {step === 2 && (
-            <Step2 formData={formData} handleChange={handleChange} />
-          )}
-          {step === 3 && (
-            <Step3 formData={formData} handleChange={handleChange} />
-          )}
-          {step === 4 && (
-            <Step4 formData={formData} handleChange={handleChange} />
-          )}
-          {step === 5 && <Step5 userEmail={loginEmail} />}
 
-          {/* BUTTONS */}
-          <div className="flex justify-between items-center mt-6">
-            {step > 1 && (
+          {step === 2 && (
+            <Step2
+              formData={formData}
+              handleChange={handleChange}
+              setIsStepValid={setIsStepValid}
+            />
+          )}
+
+          {step === 3 && (
+            <Step3
+              formData={formData}
+              handleChange={handleChange}
+              setIsStepValid={setIsStepValid}
+            />
+          )}
+
+          {step === 4 && (
+            <Step4
+              formData={formData}
+              handleChange={handleChange}
+              setIsStepValid={setIsStepValid}
+            />
+          )}
+
+          {step === 5 && (
+            <Step5
+              userEmail={loginEmail}
+              setIsStepValid={setIsStepValid}
+              setStep={setStep}
+            />
+          )}
+
+          {/* ✅ Step6 added */}
+          {step === 6 && <Step6 />}
+
+          {/* Buttons hidden on Step6 */}
+          {step !== 6 && (
+            <div className="flex justify-between items-center mt-6">
+              {step > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStep(step - 1)}
+                  className="px-6 py-2 border rounded bg-gray-100 hover:bg-gray-200"
+                >
+                  Back
+                </button>
+              )}
+
+              <div>
+                {step < 5 && (
+                  <button
+                    type="button"
+                    onClick={nextHandler}
+                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Next
+                  </button>
+                )}
+
+                {/* ✔ SINGLE FINAL SUBMIT BUTTON */}
+                {step === 5 && (
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  >
+                    Submit Form
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
-                onClick={() => setStep(step - 1)}
-                className="px-6 py-2 border rounded bg-gray-100 hover:bg-gray-200"
+                onClick={clearForm}
+                className="px-6 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50"
               >
-                Back
+                Clear
               </button>
-            )}
-
-            <div>
-              {step < 4 && (
-                <button
-                  type="button"
-                  onClick={() => setStep(step + 1)}
-                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Next
-                </button>
-              )}
-              {step === 4 && formData.agreeTerms && (
-                <button
-                  type="button"
-                  onClick={() => setStep(5)}
-                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Next
-                </button>
-              )}
-              {step === 5 && (
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  Submit
-                </button>
-              )}
             </div>
-
-            <button
-              type="button"
-              onClick={clearForm}
-              className="px-6 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50"
-            >
-              Clear
-            </button>
-          </div>
+          )}
         </form>
       </div>
     </div>
