@@ -7,7 +7,7 @@ const Hr = () => {
 
   const fetchHrData = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/hr");
+      const res = await fetch("/api/hr");
       const data = await res.json();
       setHrData(data);
     } catch (error) {
